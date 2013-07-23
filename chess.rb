@@ -26,14 +26,33 @@ end
 class Pawn < Piece
   def initialize(pos, side, board)
     super(pos, side, board)
+    @first_move = true
   end
 
+  def valid_moves
+    valid_moves = []
 
+    if @side == :black
+      valid_moves << [@pos[0], @pos[1] + 2] if @first_move
+      valid_moves << [@pos[0], @pos[1] + 1]
+      valid_moves << [@pos[0] - 1, @pos[1] + 1] unless board.board[@pos[0] - 1][@pos[1] + 1].nil?
+      valid_moves << [@pos[0] + 1, @pos[1] + 1] unless board.board[@pos[0] + 1][@pos[1] + 1].nil?
+    else
+      valid_moves << [@pos[0], @pos[1] - 2] if @first_move
+      valid_moves << [@pos[0], @pos[1] - 1]
+      valid_moves << [@pos[0] - 1, @pos[1] - 1] unless board.board[@pos[0] - 1][@pos[1] - 1].nil?
+      valid_moves << [@pos[0] + 1, @pos[1] - 1] unless board.board[@pos[0] + 1][@pos[1] - 1].nil?
+    end
+  end
 end
 
 class Bishop < Piece
   def initialize(pos, side, board)
     super(pos, side, board)
+  end
+
+  def valid_moves
+
   end
 end
 
@@ -41,11 +60,19 @@ class Knight < Piece
   def initialize(pos, side, board)
     super(pos, side, board)
   end
+
+  def valid_moves
+
+  end
 end
 
 class Rook < Piece
   def initialize(pos, side, board)
     super(pos, side, board)
+  end
+
+  def valid_moves
+
   end
 end
 
@@ -53,15 +80,29 @@ class King < Piece
   def initialize(pos, side, board)
     super(pos, side, board)
   end
+
+  def valid_moves
+
+  end
 end
 
 class Queen < Piece
   def initialize(pos, side, board)
     super(pos, side, board)
   end
+
+  def valid_moves
+
+  end
 end
 
+
+
+
+
 class Board
+  attr_reader :board
+
   def initialize
     generate_board
     initialize_pieces
@@ -70,22 +111,30 @@ class Board
   def display_board
 
     8.times do |row|
-      print "#{8-row} "
+      print "#{8 - row} "
 
       @board[row].each do |piece|
-        print "#{piece.to_s} "
+        piece.nil? ? print(". ") : print("#{piece.to_s} ")
       end
       puts ''
     end
     puts '  a b c d e f g h'
   end
 
-  def in_to_out_convert(user_pos)
-    user_pos.split('')
+  def move_piece(from, to)
+    # validate moves, if okay then move
+    #
+    #
 
-    board_pos = [user_pos[1].to_i - 1, 8 - (user_pos[0].ord - 97) ]
-    board_pos
+
+    @board[to[0]][to[1]] = @board[from[0]][from[1]]
+    @board[from[0]][from[1]] = nil
   end
+
+#  def get_piece(pos)
+#    a = @board[pos.first][pos.last]
+
+#  end
 
 
 
@@ -118,6 +167,62 @@ class Board
       end
     end
   end
+
+end
+
+class HumanPlayer
+  def initialize(board)
+    @board = board
+  end
+
+  def play_turn
+    @board.display_board
+
+    user_input = self.get_input
+    self.move_piece(user_input)
+  end
+
+  def get_input
+    puts "please input moves: eg. f1, g1"
+    raw_input = gets.chomp.split(", ")
+    from = HumanPlayer.pos_convert(raw_input.first)
+    to = HumanPlayer.pos_convert(raw_input.last)
+    [from, to]
+  end
+
+  def move_piece(pos)
+    from = pos.first
+    to = pos.last
+
+    @board.move_piece(from, to)
+  end
+
+  def self.pos_convert(user_pos)
+    user_pos.split('')
+    board_pos = [8 - user_pos[1].to_i, (user_pos[0].ord - 97) ]
+
+    board_pos
+  end
+end
+
+class ChessGame
+
+  def initialize
+    @board = Board.new
+    @player1 = HumanPlayer.new(@board)
+    @player2 = HumanPlayer.new(@board)
+
+  end
+
+
+  def play
+    while true
+      @player1.play_turn
+      @player2.play_turn
+    end
+
+  end
+
 
 end
 
