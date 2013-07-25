@@ -1,19 +1,111 @@
-
+# class PosNode
+#   attr_accessor :parent
+#   attr_reader :children
+#
+#   def initialize(pos, delta, range, piece)
+#     @pos = pos
+#     @delta = delta
+#     @range = range
+#     @piece = piece
+#
+#     @parent = nil
+#     @children = []
+#   end
+#
+#   def add_child(node)
+#     @children << node
+#     node.parent = self
+#   end
+#
+#   def dfs_valid_moves
+#     return if range == 0 ||
+#
+#     @delta.each do |del| || !@piece.pos_open?(pos[0] + del[], pos[1])
+#
+#     end
+#   end
+#
+# end
 
 class Piece
-
+  attr_accessor :pos
   attr_reader :side
 
-  def initialize(side, board)
-    @side, @board = side, board
+  def initialize(side, board, pos)
+    @side, @board, @pos = side, board, pos
   end
 
-  def pos
-    @board.get_pos(self)
-  end
-
+  # def pos
+#     @board.get_pos(self)
+#   end
 
   def valid_moves(range, delta)
+    possible_array = possible_moves(range, delta)
+    # p possible_array
+    # Deal w/ other pieces in the way
+    valid_array = []
+
+    possible_array.each do |leg|
+      # next_flag = false
+      valid_leg = leg
+      leg.each_with_index do |possible_pos, i|
+        # unless i == leg.size - 1
+        next if pos_open?(possible_pos) #|| next_flag == true
+        # end
+
+        if pos_enemy?(possible_pos)
+          valid_leg = leg[0..i]
+          p valid_array
+          p 'friend'
+          # next_flag = true
+          break
+        else
+          valid_leg = leg[0...i]
+          p valid_array
+          p'foe'
+          # next_flag = true
+          break
+        end
+
+      end
+      valid_array += valid_leg
+    end
+    p valid_array
+    valid_array
+  end
+
+  def possible_moves(range, delta)
+    possible_array = []
+
+    return if range == 0
+
+    delta.each do |del|
+      a = possible_leg(@pos, 1, range, del)
+      possible_array << a
+      #p a
+    end
+
+    possible_array.delete_if { |el| el.empty? }
+    # p possible_array
+    p possible_array
+    possible_array
+  end
+
+  def possible_leg(pos, mult, range, delta_leg)
+    del_pos = [pos[0] + (delta_leg[0] * mult), pos[1] + (delta_leg[1] * mult)]
+    return [] if mult > range || del_pos[0] < 0 || del_pos[0] > 7 || del_pos[1] < 0 || del_pos[1] > 7
+
+
+    leg_array = [del_pos]
+    #p leg_array
+
+    leg_array += possible_leg(@pos, mult + 1, range, delta_leg)
+    # p leg_array
+
+    leg_array
+  end
+
+  def valid_moves2(range, delta)
     moves = []
     (1..range).each do |range|
       delta.each do |delta|
@@ -33,11 +125,18 @@ class Piece
 
 
   def pos_open?(pos)
-    @board.get_piece(self.pos).nil?
+    # @board.get_piece(pos).nil?
+    row, col = pos
+
+    @board.board[row][col].nil?
   end
 
   def pos_enemy?(pos)
-    @board.get_piece(self.pos).side == self.side
+
+    # @board.get_piece(pos).side == self.side
+    row, col = pos
+
+    @board.board[row][col].side == self.side
   end
 
   def to_s
@@ -64,8 +163,8 @@ class Pawn < Piece
   RANGE = 1
 
 
-  def initialize(side, board)
-    super(side, board)
+  def initialize(side, board, pos)
+    super(side, board, pos)
   end
 
   def valid_moves
@@ -108,8 +207,8 @@ end
 class Bishop < Piece
   DELTA = [[-1, -1], [1, 1], [-1, 1], [1, -1]]
   RANGE = 8
-  def initialize(side, board)
-    super(side, board)
+  def initialize(side, board, pos)
+    super(side, board, pos)
   end
 
   def valid_moves
@@ -122,8 +221,8 @@ class Knight < Piece
   DELTA = [[2, 1], [-2, 1], [2, -1], [-2, -1],
           [1, 2], [-1, 2], [1, -2], [-1, -2]]
   RANGE = 1
-  def initialize(side, board)
-    super(side, board)
+  def initialize(side, board, pos)
+    super(side, board, pos)
   end
 
     def valid_moves
@@ -135,8 +234,8 @@ end
 class Rook < Piece
   DELTA = [[0, 1], [0, -1], [1, 0], [-1, 0]]
   RANGE = 8
-  def initialize(side, board)
-    super(side, board)
+  def initialize(side, board, pos)
+    super(side, board, pos)
   end
 
     def valid_moves
@@ -148,8 +247,8 @@ end
 class King < Piece
   DELTA = [[0, 1], [0, -1], [1, 0], [-1, 0], [-1, -1], [1, 1], [-1, 1], [1, -1]]
   RANGE = 1
-  def initialize(side, board)
-    super(side, board)
+  def initialize(side, board, pos)
+    super(side, board, pos)
   end
 
   def valid_moves
@@ -161,8 +260,8 @@ end
 class Queen < Piece
   DELTA = [[0, 1], [0, -1], [1, 0], [-1, 0], [-1, -1], [1, 1], [-1, 1], [1, -1]]
   RANGE = 1
-  def initialize(side, board)
-    super(side, board)
+  def initialize(side, board, pos)
+    super(side, board, pos)
   end
 
   def valid_moves
@@ -204,10 +303,11 @@ class Board
     piece_next_location = @board[to[0]][to[1]]
 
     same_side = same_side?(piece_current_location, player)
-    p piece_current_location.valid_moves
-    if piece_current_location.valid_moves.include?(to) && same_side
+    # p piece_current_location.valid_moves
+    if piece_current_location.valid_moves.include?(to)# && same_side # Debug
 
       #piece_next_location = piece_current_location
+      @board[from[0]][from[1]].pos = to
       @board[to[0]][to[1]] = @board[from[0]][from[1]]
       #piece_current_location = nil
       @board[from[0]][from[1]] = nil
@@ -265,20 +365,20 @@ class Board
   end
 
   def initialize_pieces
-    #8.times do |i|
-      #@board[1][i] = Pawn.new(:black, self)
-      #@board[6][i] = Pawn.new(:white, self)
-   # end
+    8.times do |i|
+      @board[1][i] = Pawn.new(:black, self)
+      @board[6][i] = Pawn.new(:white, self)
+   end
 
     [0, 7].each do |row|
       8.times do |col|
         side = :white if row == 7
         side = :black if row == 0
-        @board[row][col] = Rook.new(side, self) if [0, 7].include?(col)
-        @board[row][col] = Knight.new(side, self) if [1, 6].include?(col)
-        @board[row][col] = Bishop.new(side, self) if [2, 5].include?(col)
-        @board[row][col] = Queen.new(side, self) if col == 3
-        @board[row][col] = King.new(side, self) if col == 4
+        @board[row][col] = Rook.new(side, self, [row, col]) if [0, 7].include?(col)
+        @board[row][col] = Knight.new(side, self, [row, col]) if [1, 6].include?(col)
+        @board[row][col] = Bishop.new(side, self, [row, col]) if [2, 5].include?(col)
+        @board[row][col] = Queen.new(side, self, [row, col]) if col == 3
+        @board[row][col] = King.new(side, self, [row, col]) if col == 4
       end
     end
   end
@@ -325,6 +425,7 @@ class HumanPlayer
 end
 
 class ChessGame
+  attr_reader :board # Debug
 
   def initialize
     @board = Board.new
